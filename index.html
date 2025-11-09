@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Інтерактивний Звіт: Патерни Проектування</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .page {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .nav-link {
+            display: block;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: background-color 0.2s, color 0.2s;
+            color: #374151;
+            font-weight: 500;
+        }
+        .nav-link:hover {
+            background-color: #f3f4f6;
+            color: #111827;
+        }
+        .nav-link.active {
+            background-color: #e0f2fe;
+            color: #0c4a6e;
+            font-weight: 600;
+        }
+        .code-tab {
+            padding: 8px 16px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            font-weight: 500;
+            color: #6b7280;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .code-tab:hover {
+            color: #111827;
+        }
+        .code-tab.active {
+            color: #0c4a6e;
+            border-color: #0c4a6e;
+            font-weight: 600;
+        }
+        pre {
+            background-color: #1f2937;
+            color: #f9fafb;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            max-height: 500px;
+        }
+        code {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 350px;
+        }
+        #sidebar {
+            transition: transform 0.3s ease-in-out;
+        }
+        @media (max-width: 768px) {
+            #sidebar {
+                transform: translateX(-100%);
+            }
+            #sidebar.open {
+                transform: translateX(0);
+            }
+        }
+        .console-output {
+            background-color: #1f2937;
+            color: #f9fafb;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-y: auto;
+            max-height: 150px;
+            font-size: 0.85em;
+        }
+        .console-output div {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- Chosen Palette: Warm Neutrals (bg-gray-50) with Cool Blue Accents (e0f2fe, 0c4a6e) -->
+    <!-- Application Structure Plan: A pattern-centric SPA. The layout for pattern pages is now split into two columns (md:grid-cols-2): Left for Interactive Visualization/Simulation (JS) and Right for Code/Detailed Explanation (PHP/C++ tabs). This allows the user to click and immediately see the code that governs the demonstrated behavior, enhancing comprehension. Navigation remains via the fixed sidebar. -->
+    <!-- Visualization & Content Choices: 
+        1. Singleton (C++): Goal (Demonstrate uniqueness) -> Viz (Buttons + Console) -> Interaction (Create 2 instances, log) -> Justification (Visually confirms only one object is ever created).
+        2. Factory (C++ & Laravel): Goal (Demonstrate abstraction/instantiation) -> Viz (C++ Dropdown + Console; Laravel Button + Console) -> Interaction (Select type, create object / Run Seeder) -> Justification (Shows the factory creating different objects via a single interface and simulating the framework's use of factories for mass data creation).
+        3. Observer (C++ & Laravel): Goal (Demonstrate one-to-many dependency) -> Viz (C++ Controls + Console; Laravel Button + Console) -> Interaction (Add/Remove Observers, Publish News / Create User) -> Justification (Visually confirms real-time notification in C++ and simulates the Model->Event->Listener sequence in Laravel).
+        4. Strategy (C++): Goal (Demonstrate runtime algorithm swap) -> Viz (Radio Buttons + Console) -> Interaction (Select strategy, execute payment) -> Justification (Shows context using different internal algorithms without modifying context class).
+        5. Code Management: Goal (Organize) -> Presentation (HTML <pre><code> in tabs) -> Interaction (JS-powered sub-tabs) -> Justification (Manages code complexity for Laravel files).
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- Mobile Menu Toggle -->
+        <button id="menu-toggle" class="md:hidden fixed top-4 left-4 z-30 p-2 bg-white rounded-md shadow-md">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+        </button>
+
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-64 bg-white p-5 shadow-lg overflow-y-auto z-20 absolute md:relative h-full">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-xl font-bold text-gray-900">Патерни</h1>
+                <button id="menu-close" class="md:hidden p-1">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <nav id="main-nav" class="space-y-1">
+                <a href="#" class="nav-link active" onclick="showPage('page-overview', this)">Огляд</a>
+                <a href="#" class="nav-link" onclick="showPage('page-classification', this)">Класифікація</a>
+                
+                <h3 class="text-xs uppercase text-gray-500 font-semibold mt-4 mb-2 pt-2 border-t">Створюючі</h3>
+                <a href="#" class="nav-link" onclick="showPage('page-singleton', this)">Singleton</a>
+                <a href="#" class="nav-link" onclick="showPage('page-factory', this)">Factory</a>
+                
+                <h3 class="text-xs uppercase text-gray-500 font-semibold mt-4 mb-2 pt-2 border-t">Структурні</h3>
+                <a href="#" class="nav-link" onclick="showPage('page-decorator', this)">Decorator</a>
+                
+                <h3 class="text-xs uppercase text-gray-500 font-semibold mt-4 mb-2 pt-2 border-t">Поведінкові</h3>
+                <a href="#" class="nav-link" onclick="showPage('page-observer', this)">Observer</a>
+                <a href="#" class="nav-link" onclick="showPage('page-strategy', this)">Strategy</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-6 md:p-10 overflow-y-auto">
+            
+            <!-- Page: Overview -->
+            <section id="page-overview" class="page">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">Що таке Патерн Проектування?</h2>
+                <p class="text-lg text-gray-700 mb-6">
+                    **Патерн проєктування** (Design Pattern) — це типове, багаторазово використовуване рішення загальновідомої проблеми, що часто виникає при проєктуванні архітектури програмного забезпечення. Вони не є готовим кодом; це шаблони або найкращі практики, які роблять код гнучкішим, зрозумілішим та легшим для підтримки.
+                </p>
+                <p class="text-lg text-gray-700 mb-8">
+                    Цей інтерактивний звіт візуалізує теоретичні аспекти патернів та надає приклади їх практичної реалізації в Laravel та C++, згідно з наданим завданням. Використовуйте навігацію для дослідження.
+                </p>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-xl font-semibold text-center mb-4">Розподіл Патернів (Теорія)</h3>
+                        <p class="text-sm text-gray-600 text-center mb-4">Візуалізація класифікації патернів, представлених у теоретичній частині звіту.</p>
+                        <div class="chart-container">
+                            <canvas id="patternTypeChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-xl font-semibold text-center mb-4">Фокус Практичних Завдань</h3>
+                        <p class="text-sm text-gray-600 text-center mb-4">Кількість практичних реалізацій для кожного патерну (включаючи Laravel та C++).</p>
+                        <div class="chart-container">
+                            <canvas id="taskFocusChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page: Classification (Content unchanged, just structure) -->
+            <section id="page-classification" class="page hidden">
+                <h2 class="text-3xl font-bold text-gray-900 mb-6">Класифікація Патернів</h2>
+                <p class="text-lg text-gray-700 mb-8">
+                    Патерни проєктування традиційно класифікують на три основні категорії. Нижче представлені таблиці з описом, призначенням та прикладами для кожної групи, як зазначено у теоретичному звіті.
+                </p>
+
+                <h3 class="text-2xl font-semibold text-gray-900 mb-4">1. Створюючі (Creational Patterns)</h3>
+                <p class="text-gray-700 mb-4">Вирішують проблеми створення об'єктів, абстрагуючи процес інстанціювання.</p>
+                <div class="overflow-x-auto bg-white rounded-lg shadow-md">
+                    <table class="w-full min-w-max text-left">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="p-4 font-semibold">Патерн</th>
+                                <th class="p-4 font-semibold">Призначення</th>
+                                <th class="p-4 font-semibold">Приклад</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y">
+                            <tr class="hover:bg-gray-50">
+                                <td class="p-4 font-medium">Singleton</td>
+                                <td class="p-4">Гарантує, що клас має лише один екземпляр, і надає глобальну точку доступу до нього.</td>
+                                <td class="p-4">Управління підключенням до бази даних.</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="p-4 font-medium">Factory Method</td>
+                                <td class="p-4">Надає інтерфейс для створення об'єкта у суперкласі, але дозволяє підкласам змінити тип створюваного об'єкта.</td>
+                                <td class="p-4">Створення різних типів транспортних засобів.</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="p-4 font-medium">Abstract Factory</td>
+                                <td class="p-4">Надає інтерфейс для створення сімейств пов'язаних об'єктів без зазначення їхніх конкретних класів.</td>
+                                <td class="p-4">Створення елементів GUI для різних ОС.</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="p-4 font-medium">Builder</td>
+                                <td class="p-4">Дозволяє створювати складні об'єкти поетапно.</td>
+                                <td class="p-4">Створення складних SQL-запитів.</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="p-4 font-medium">Prototype</td>
+                                <td class="p-4">Створює нові об'єкти шляхом клонування наявного екземпляра.</td>
+                                <td class="p-4">Створення копій складних об'єктів.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 class="text-2xl font-semibold text-gray-900 mt-8 mb-4">2. Структурні (Structural Patterns)</h3>
+                <p class="text-gray-700 mb-4">Стосуються композиції класів та об'єктів для формування більших структур.</p>
+                <div class="overflow-x-auto bg-white rounded-lg shadow-md">
+                    <table class="w-full min-w-max text-left">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="p-4 font-semibold">Патерн</th>
+                                <th class="p-4 font-semibold">Призначення</th>
+                                <th class="p-4 font-semibold">Приклад</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y">
+                            <tr class="hover:bg-gray-50">
+                                <td class="p-4 font-medium">Adapter</td>
+                                <td class="p-4">Дозволяє об'єктам з несумісними інтерфейсами працювати разом.</td>
+                                <td class="p-4">Підключення застарілої бібліотеки.</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="p-4 font-medium">Decorator</td>
+                                <td class="p-4">Динамічно додає нову поведінку до об'єкта.</td>
+                                <td class="p-4">Додавання логінгу чи кешування.</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="p-4 font-medium">Composite</td>
+                                <td class="p-4">Компонує об'єкти в деревоподібні структури.</td>
+                                <td class="p-4">Структура папок та файлів.</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="p-4 font-medium">Facade</td>
+                                <td class="p-4">Надає спрощений інтерфейс до складної підсистеми.</td>
+                                <td class="p-4">Фронтенд-компонент, що приховує логіку.</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="p-4 font-medium">Proxy</td>
+                                <td class="p-4">Надає сурогат для іншого об'єкта для контролю доступу.</td>
+                                <td class="p-4">Лениве завантаження (lazy loading) даних.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 class="text-2xl font-semibold text-gray-900 mt-8 mb-4">3. Поведінкові (Behavioral Patterns)</h3>
+                <p class="text-gray-700 mb-4">Стосуються алгоритмів та розподілу відповідальності між об'єктами.</p>
+                <div class="overflow-x-auto bg-white rounded-lg shadow-md">
+                    <table class="w-full min-w-max text-left">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="p-4 font-semibold">Патерн</th>
+                                <th class="p-4 font-semibold">Призначення</th>
+                                <th class="p-4 font-semibold">Приклад</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y">
+                            <tr class="hover:bg-gray-50">
+                                <td class="p-4 font-medium">Observer</td>
+                                <td class="p-4">Визначає залежність "один-до-багатьох"; при зміні стану одного, усі залежні сповіщаються.</td>
+                                <td class="p-4">Системи подій та сповіщень.</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="p-4 font-medium">Strategy</td>
+                                <td class="p-4">Визначає сімейство алгоритмів, інкапсулює кожен із них і робить їх взаємозамінними.</td>
+                                <td class="p-4">Різні методи оплати.</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="p-4 font-medium">Chain of Responsibility</td>
+                                <td class="p-4">Дозволяє декільком об'єктам обробити запит, уникаючи прямої прив'язки.</td>
+                                <td class="p-4">Система Middleware у вебфреймворках.</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="p-4 font-medium">Template Method</td>
+                                <td class="p-4">Визначає скелет алгоритму в суперкласі, дозволяючи підкласам перевизначити деякі кроки.</td>
+                                <td class="p-4">Тестування (Setup/Execute/Teardown).</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="p-4 font-medium">Command</td>
+                                <td class="p-4">Інкапсулює запит як об'єкт.</td>
+                                <td class="p-4">Реалізація функцій скасування (undo).</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Page: Singleton -->
+            <section id="page-singleton" class="page hidden">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">Патерн: Singleton</h2>
+                <p class="text-lg text-gray-700 mb-6">
+                    Гарантує, що клас має лише один екземпляр, і надає глобальну точку доступу до нього.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
+                    <!-- Ліва колонка: Візуалізація -->
+                    <div class="bg-white p-6 rounded-xl shadow-xl space-y-4">
+                        <h3 class="font-bold text-xl text-blue-700 border-b pb-2">Демонстрація C++ Singleton (Logger)</h3>
+                        <p class="text-gray-700 text-sm">Натисніть кілька разів "Отримати Logger", щоб переконатися, що створюється лише один екземпляр.</p>
+                        
+                        <div class="flex space-x-4">
+                            <button id="singleton-get-1" class="w-full bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 transition font-semibold shadow-md">
+                                Отримати Logger #1
+                            </button>
+                            <button id="singleton-get-2" class="w-full bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 transition font-semibold shadow-md">
+                                Отримати Logger #2
+                            </button>
+                        </div>
+                        
+                        <input type="text" id="singleton-message-input" placeholder="Введіть повідомлення для логування..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        <button id="singleton-log-btn" class="w-full bg-green-600 text-white p-3 rounded-lg hover:bg-green-700 transition font-semibold shadow-md">
+                            Логувати Повідомлення
+                        </button>
+
+                        <h4 class="font-bold text-lg mb-2 pt-4 border-t">Віртуальна Консоль</h4>
+                        <div id="singleton-console" class="console-output">Консоль готова...</div>
+                    </div>
+
+                    <!-- Права колонка: Код -->
+                    <div class="space-y-4">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2 border-b pb-2">Практична Реалізація C++ (Завдання 1)</h3>
+                        <p class="text-gray-700 text-sm">Реалізація класу `Logger`, який існує лише в одному екземплярі (Singleton).</p>
+                        <pre><code>// =================================================================
+// ЗАВДАННЯ 1: Singleton (Одинак)
+// Гарантує, що клас має лише один екземпляр, і надає глобальну точку доступу.
+// =================================================================
+
+class Logger {
+private:
+    // 1. Приватний конструктор: Запобігає створенню екземплярів ззовні
+    Logger() {
+        std::cout << "\n[SINGLETON] Екземпляр Logger створено.\n";
+    }
+
+    // 2. Видаляємо конструктор копіювання та оператор присвоєння
+    Logger(const Logger&) = delete;
+    Logger& operator=(const Logger&) = delete;
+
+public:
+    // 3. Статичний метод для отримання єдиного екземпляра
+    static Logger* getInstance() {
+        // Використовуємо 'static local variable' (Майерс-Сінглтон)
+        static Logger instance;
+        return &instance;
+    }
+
+    // Метод для логування повідомлення
+    void log(const std::string& message) {
+        std::cout << "[LOG: " << this << "] " << message << "\n";
+    }
+};</code></pre>
+
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2 border-b pb-2 pt-4">Де зустріти?</h3>
+                        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                            <p><strong>Laravel (Service Container):</strong> Сервіс-контейнер Laravel за замовчуванням реєструє багато класів (наприклад, `App`, `Config`, `Logger`) як синглтони.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page: Factory -->
+            <section id="page-factory" class="page hidden">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">Патерн: Factory</h2>
+                <p class="text-lg text-gray-700 mb-6">
+                    Надає інтерфейс для створення об'єкта у суперкласі, але дозволяє підкласам змінити тип створюваного об'єкта.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
+                    <!-- Ліва колонка: Візуалізація C++ & Laravel -->
+                    <div class="bg-white p-6 rounded-xl shadow-xl space-y-6">
+                        
+                        <div class="space-y-4 border-b pb-6">
+                            <h3 class="font-bold text-xl text-blue-700 border-b pb-2">Демонстрація C++ Factory (Транспорт)</h3>
+                            <p class="text-gray-700 text-sm">Фабрика створює різні об'єкти (Car, Bike) через єдиний метод.</p>
+
+                            <label for="transport-type" class="block text-gray-700 font-medium">Оберіть Транспорт:</label>
+                            <select id="transport-type" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                                <option value="Car">Автомобіль (Car)</option>
+                                <option value="Bike">Велосипед (Bike)</option>
+                                <option value="Train">Потяг (Невідомий тип)</option>
+                            </select>
+                            
+                            <button id="factory-create-btn" class="w-full bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 transition font-semibold shadow-md">
+                                Створити та Використати Транспорт
+                            </button>
+
+                            <h4 class="font-bold text-lg mb-2 pt-2 border-t">Віртуальна Консоль C++</h4>
+                            <div id="factory-console" class="console-output">Консоль готова...</div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <h3 class="font-bold text-xl text-green-700 border-b pb-2">Симуляція Laravel Factory (Сідер)</h3>
+                            <p class="text-gray-700 text-sm">Симуляція запуску `php artisan db:seed`. Фабрика створює 10 користувачів різних ролей.</p>
+                            
+                            <button id="laravel-factory-seed-btn" class="w-full bg-green-600 text-white p-3 rounded-lg hover:bg-green-700 transition font-semibold shadow-md">
+                                Запустити Laravel Seeder
+                            </button>
+                            
+                            <h4 class="font-bold text-lg mb-2 pt-2 border-t">Віртуальна Консоль Laravel</h4>
+                            <div id="laravel-factory-console" class="console-output">Консоль готова...</div>
+                        </div>
+                    </div>
+
+                    <!-- Права колонка: Код -->
+                    <div class="space-y-4">
+                        
+                        <div class="mb-4">
+                            <div class="flex flex-wrap border-b border-gray-200" id="factory-code-tabs">
+                                <button class="code-tab active" onclick="showCode('factory-cpp-code', 'page-factory', this)">C++ (Transport Factory)</button>
+                                <button class="code-tab" onclick="showCode('factory-laravel-factory', 'page-factory', this)">Laravel (UserFactory.php)</button>
+                                <button class="code-tab" onclick="showCode('factory-laravel-seeder', 'page-factory', this)">Laravel (DatabaseSeeder.php)</button>
+                            </div>
+                        </div>
+
+                        <div id="factory-cpp-code" class="code-content">
+                            <h3 class="text-xl font-semibold text-gray-900 mb-2 border-b pb-2">Практична Реалізація C++ (Завдання 2)</h3>
+                            <p class="text-gray-700 text-sm">Базовий клас `Transport` та фабрика `TransportFactory`.</p>
+                            <pre><code>// =================================================================
+// ЗАВДАННЯ 2: Factory Method (Фабричний Метод)
+// =================================================================
+
+// Базовий клас (Продукт)
+class Transport {
+public:
+    virtual ~Transport() = default;
+    virtual void drive() const = 0;
+};
+
+// Конкретний Продукт 1
+class Car : public Transport {
+public:
+    void drive() const override {
+        std::cout << "[FACTORY] Автомобіль їде по дорозі.\n";
+    }
+};
+
+// Конкретний Продукт 2
+class Bike : public Transport {
+public:
+    void drive() const override {
+        std::cout << "[FACTORY] Велосипед рухається по доріжці.\n";
+    }
+};
+
+// Клас-Фабрика
+class TransportFactory {
+public:
+    static std::unique_ptr<Transport> create(const std::string& type) {
+        if (type == "Car") {
+            return std::make_unique<Car>();
+        } else if (type == "Bike") {
+            return std::make_unique<Bike>();
+        }
+        return nullptr;
+    }
+};</code></pre>
+                        </div>
+                        
+                        <div id="factory-laravel-factory" class="code-content hidden">
+                            <h3 class="text-xl font-semibold text-gray-900 mb-2 border-b pb-2">Laravel: Фабрика Користувачів (UserFactory.php)</h3>
+                            <p class="text-gray-700 text-sm">Фабрика для створення користувачів з різними ролями (`admin`, `client`, `guest`).</p>
+                            <pre><code>namespace Database\Factories;
+
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+class UserFactory extends Factory
+{
+    // ... definition()
+
+    // Factory Methods для різних ролей
+    public function admin(): Factory
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'admin',
+        ]);
+    }
+
+    public function client(): Factory
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'client',
+        ]);
+    }
+
+    public function guest(): Factory
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'guest',
+        ]);
+    }
+}</code></pre>
+                        </div>
+                        <div id="factory-laravel-seeder" class="code-content hidden">
+                            <h3 class="text-xl font-semibold text-gray-900 mb-2 border-b pb-2">Laravel: Сідер Бази Даних (DatabaseSeeder.php)</h3>
+                            <p class="text-gray-700 text-sm">Використання Фабрики для генерації 10 користувачів.</p>
+                            <pre><code>namespace Database\Seeders;
+
+use App\Models\User;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+
+class DatabaseSeeder extends Seeder
+{
+    public function run(): void
+    {
+        DB::table('users')->truncate();
+        
+        // Використання Factory Method Pattern
+        User::factory()->admin()->count(2)->create();
+        User::factory()->client()->count(5)->create();
+        User::factory()->guest()->count(3)->create();
+
+        $this->command->info('Створено 10 користувачів...');
+    }
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Page: Decorator -->
+            <section id="page-decorator" class="page hidden">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">Патерн: Decorator</h2>
+                <p class="text-lg text-gray-700 mb-6">
+                    Динамічно додає нову поведінку або відповідальність до об'єкта.
+                </p>
+
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">Де зустріти?</h3>
+                <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-3">
+                    <p><strong>Laravel (HTTP Middleware):</strong> Хоча це скоріше реалізація Chain of Responsibility, **Middleware** має елементи Decorator. Кожен проміжний обробник "обгортає" HTTP-запит, додаючи до нього нову функціональність (аутентифікація, логування).</p>
+                </div>
+                 <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
+                    <p><strong>Vue.js (Higher-Order Components / Composition Functions):</strong> У Vue 2 (HOC) або Vue 3 (Composition Functions), декораторський підхід використовується, коли ви обгортаєте або розширюєте базовий компонент/функціонал додатковою логікою (наприклад, логікою стану).</p>
+                </div>
+                
+                <h3 class="text-2xl font-semibold text-gray-900 mb-4">Практична Реалізація</h3>
+                <p class="text-gray-700 mb-4">У наданому звіті не було практичного завдання для патерну Decorator, тому інтерактивна демонстрація відсутня.</p>
+            </section>
+
+            <!-- Page: Observer -->
+            <section id="page-observer" class="page hidden">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">Патерн: Observer</h2>
+                <p class="text-lg text-gray-700 mb-6">
+                    Визначає залежність "один-до-багатьох" між об'єктами, так що при зміні стану одного об'єкта (Subject) усі його залежні (Observers) сповіщаються та автоматично оновлюються.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
+                    <!-- Ліва колонка: Візуалізація C++ & Laravel -->
+                    <div class="bg-white p-6 rounded-xl shadow-xl space-y-6">
+                        
+                        <div class="space-y-4 border-b pb-6">
+                            <h3 class="font-bold text-xl text-blue-700 border-b pb-2">Демонстрація C++ Observer (News Agency)</h3>
+                            <p class="text-gray-700 text-sm">Симуляція відправки новин усім підписникам (аналог C++ Завдання 3).</p>
+
+                            <div class="grid grid-cols-1 gap-4">
+                                <div class="space-y-3">
+                                    <h4 class="font-bold text-lg text-gray-800">Керування Subject</h4>
+                                    <input type="text" id="news-input" placeholder="Введіть нову новину..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                                    <div class="flex space-x-4">
+                                        <button id="publish-btn" class="w-2/3 bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 transition font-semibold shadow-md">
+                                            <span class="inline-block align-middle mr-1">📢</span> Опублікувати (Notify)
+                                        </button>
+                                        <button id="add-subscriber-btn" class="w-1/3 bg-green-600 text-white p-3 rounded-lg hover:bg-green-700 transition font-semibold shadow-md">
+                                            <span class="inline-block align-middle">➕</span> Підписати
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-gray-100 p-3 rounded-lg border border-gray-200">
+                                    <h4 class="font-bold text-base mb-2">Активні Підписники</h4>
+                                    <ul id="subscriber-list" class="text-sm space-y-2 max-h-24 overflow-y-auto p-1">
+                                        <!-- List items will be appended here -->
+                                    </ul>
+                                </div>
+                            </div>
+                            <h4 class="font-bold text-lg mb-2 pt-2 border-t">Віртуальна Консоль C++</h4>
+                            <div id="observer-console-cpp" class="console-output">Консоль готова...</div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <h3 class="font-bold text-xl text-green-700 border-b pb-2">Симуляція Laravel Observer (Логування)</h3>
+                            <p class="text-gray-700 text-sm">Симуляція створення користувача та логіки фреймворку: **Model -> Event -> Listener**.</p>
+                            
+                            <button id="laravel-observer-create-btn" class="w-full bg-green-600 text-white p-3 rounded-lg hover:bg-green-700 transition font-semibold shadow-md">
+                                Створити Нового Користувача (Model::create())
+                            </button>
+                            
+                            <h4 class="font-bold text-lg mb-2 pt-2 border-t">Віртуальна Консоль Laravel</h4>
+                            <div id="observer-console-laravel" class="console-output">Консоль готова...</div>
+                        </div>
+                    </div>
+
+                    <!-- Права колонка: Код -->
+                    <div class="space-y-4">
+                        <div class="mb-4">
+                            <div class="flex flex-wrap border-b border-gray-200" id="observer-code-tabs">
+                                <button class="code-tab active" onclick="showCode('obs-cpp-code', 'page-observer', this)">C++ (News Agency)</button>
+                                <button class="code-tab" onclick="showCode('obs-laravel-model', 'page-observer', this)">Laravel (Model/Event)</button>
+                                <button class="code-tab" onclick="showCode('obs-laravel-listener', 'page-observer', this)">Laravel (Listener/Provider)</button>
+                            </div>
+                        </div>
+                        
+                        <div id="obs-cpp-code" class="code-content">
+                            <h3 class="text-xl font-semibold text-gray-900 mb-2 border-b pb-2">Практична Реалізація C++ (Завдання 3)</h3>
+                            <p class="text-gray-700 text-sm">Створення `NewsAgency` (Subject) та `ISubscriber` (Observer).</p>
+                            <pre><code>// =================================================================
+// ЗАВДАННЯ 3: Observer (Спостерігач)
+// =================================================================
+
+// Інтерфейс Спостерігача (Observer)
+class ISubscriber {
+public:
+    virtual ~ISubscriber() = default;
+    virtual void update(const std::string& news) = 0;
+};
+
+// Суб'єкт (Subject) - NewsAgency
+class NewsAgency {
+private:
+    std::vector<ISubscriber*> subscribers;
+    std::string latestNews;
+public:
+    void subscribe(ISubscriber* subscriber) { /* ... */ }
+    void unsubscribe(ISubscriber* subscriber) { /* ... */ }
+    void notifySubscribers() { /* ... */ }
+    void publishNews(const std::string& news) { 
+        latestNews = news;
+        notifySubscribers();
+    }
+};
+
+// Конкретний Спостерігач
+class Subscriber : public ISubscriber {
+    // ...
+    void update(const std::string& news) override {
+        std::cout << "[" << name << "] Отримав новину: " << news << "\n";
+    }
+};</code></pre>
+                        </div>
+                        
+                        <div id="obs-laravel-model" class="code-content hidden">
+                            <h3 class="text-xl font-semibold text-gray-900 mb-2 border-b pb-2">Laravel: Модель та Подія (User.php, NewUserCreated.php)</h3>
+                            <p class="text-gray-700 text-sm">Модель `User` викликає подію `NewUserCreated` при створенні.</p>
+                            <pre><code>// app/Models/User.php
+protected $dispatchesEvents = [
+    'created' => \App\Events\NewUserCreated::class,
+];
+
+// app/Events/NewUserCreated.php
+class NewUserCreated
+{
+    public $user;
+    public function __construct(User $user)
+    {
+        $this->user = $user;
+    }
+}</code></pre>
+                        </div>
+                        <div id="obs-laravel-listener" class="code-content hidden">
+                            <h3 class="text-xl font-semibold text-gray-900 mb-2 border-b pb-2">Laravel: Слухач та Реєстрація (Listener/Provider)</h3>
+                            <p class="text-gray-700 text-sm">`LogNewUserListener` реагує на подію та виконує логування.</p>
+                            <pre><code>// app/Listeners/LogNewUserListener.php
+class LogNewUserListener implements ShouldQueue
+{
+    public function handle(NewUserCreated $event): void
+    {
+        Log::info('New User Created:', [
+            'id' => $event->user->id,
+            'role' => $event->user->role,
+        ]);
+    }
+}
+
+// app/Providers/EventServiceProvider.php
+protected $listen = [
+    NewUserCreated::class => [
+        LogNewUserListener::class,
+    ],
+];</code></pre>
+                        </div>
+                        
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2 border-b pb-2 pt-4">Де зустріти?</h3>
+                        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                            <p><strong>Laravel (Eloquent Events):</strong> Модель Eloquent (`Subject`) викликає події, а зареєстровані **Listeners** (`Observer`) реагують на них (наприклад, логування, надсилання e-mail).</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page: Strategy -->
+            <section id="page-strategy" class="page hidden">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">Патерн: Strategy</h2>
+                <p class="text-lg text-gray-700 mb-6">
+                    Визначає сімейство алгоритмів, інкапсулює кожен із них і робить їх взаємозамінними. Дозволяє клієнту вибирати алгоритм під час виконання.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-6">
+                    <!-- Ліва колонка: Візуалізація C++ -->
+                    <div class="bg-white p-6 rounded-xl shadow-xl space-y-4">
+                        <h3 class="font-bold text-xl text-blue-700 border-b pb-2">Демонстрація C++ Strategy (Оплата)</h3>
+                        <p class="text-gray-700 text-sm">Оберіть стратегію оплати та суму, щоб побачити, як Контекст використовує обраний алгоритм.</p>
+
+                        <div class="space-y-2">
+                            <h4 class="font-bold text-gray-800">Оберіть Стратегію Оплати:</h4>
+                            <div class="flex space-x-4">
+                                <label class="flex items-center">
+                                    <input type="radio" name="payment-strategy" value="CreditCard" checked class="form-radio text-blue-600">
+                                    <span class="ml-2">💳 Кредитна Картка</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="payment-strategy" value="PayPal" class="form-radio text-blue-600">
+                                    <span class="ml-2">💸 PayPal</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <label for="payment-amount" class="block text-gray-700 font-medium">Сума (USD):</label>
+                        <input type="number" id="payment-amount" value="100" min="1" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        
+                        <button id="strategy-pay-btn" class="w-full bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 transition font-semibold shadow-md">
+                            Виконати Оплату
+                        </button>
+
+                        <h4 class="font-bold text-lg mb-2 pt-4 border-t">Віртуальна Консоль</h4>
+                        <div id="strategy-console" class="console-output">Консоль готова...</div>
+                    </div>
+
+                    <!-- Права колонка: Код -->
+                    <div class="space-y-4">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2 border-b pb-2">Практична Реалізація C++ (Завдання 4)</h3>
+                        <p class="text-gray-700 text-sm">Інтерфейс `IPaymentStrategy` та його конкретні реалізації.</p>
+                        <pre><code>// =================================================================
+// ЗАВДАННЯ 4: Strategy (Стратегія)
+// =================================================================
+
+// Інтерфейс Стратегії (Payment Strategy)
+class IPaymentStrategy {
+public:
+    virtual ~IPaymentStrategy() = default;
+    virtual void pay(int amount) const = 0;
+};
+
+// Конкретна Стратегія 1
+class CreditCardPayment : public IPaymentStrategy {
+public:
+    void pay(int amount) const override {
+        std::cout << "[STRATEGY] Оплата " << amount << " USD за допомогою Кредитної Картки.\n";
+    }
+};
+
+// Конкретна Стратегія 2
+class PayPalPayment : public IPaymentStrategy {
+public:
+    void pay(int amount) const override {
+        std::cout << "[STRATEGY] Оплата " << amount << " USD за допомогою PayPal.\n";
+    }
+};
+
+// Контекст
+class PaymentContext {
+private:
+    std::unique_ptr<IPaymentStrategy> strategy;
+public:
+    PaymentContext(std::unique_ptr<IPaymentStrategy> paymentStrategy) 
+        : strategy(std::move(paymentStrategy)) {}
+    
+    void executePayment(int amount) const {
+        if (strategy) {
+            strategy->pay(amount);
+        }
+    }
+};</code></pre>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2 border-b pb-2 pt-4">Де зустріти?</h3>
+                        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                            <p><strong>Laravel (Filesystem, Cache):</strong> Laravel використовує Strategy для різних драйверів (наприклад, S3, Redis), які реалізують єдиний інтерфейс.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            setupMobileMenu();
+            // Ініціалізація усіх симуляцій
+            setupSingletonSimulation();
+            setupFactorySimulation();
+            setupObserverSimulation(); 
+            setupStrategySimulation();
+        });
+
+        function setupMobileMenu() {
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.getElementById('menu-toggle');
+            const closeBtn = document.getElementById('menu-close');
+
+            const openMenu = () => {
+                sidebar.classList.add('open');
+                sidebar.classList.remove('md:relative');
+                sidebar.classList.add('fixed', 'top-0', 'left-0');
+            };
+            
+            const closeMenu = () => {
+                sidebar.classList.remove('open');
+                sidebar.classList.add('md:relative');
+                sidebar.classList.remove('fixed', 'top-0', 'left-0');
+            };
+
+            toggleBtn.addEventListener('click', openMenu);
+            closeBtn.addEventListener('click', closeMenu);
+            
+            document.querySelectorAll('#main-nav .nav-link').forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth < 768) {
+                        closeMenu();
+                    }
+                });
+            });
+        }
+
+        function showPage(pageId, navElement) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.add('hidden');
+            });
+
+            const targetPage = document.getElementById(pageId);
+            if (targetPage) {
+                targetPage.classList.remove('hidden');
+            }
+
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            if (navElement) {
+                navElement.classList.add('active');
+            }
+        }
+
+        function showCode(codeId, pageId, tabElement) {
+            const page = document.getElementById(pageId);
+            if (!page) return;
+
+            page.querySelectorAll('.code-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+
+            const targetCode = document.getElementById(codeId);
+            if (targetCode) {
+                targetCode.classList.remove('hidden');
+            }
+
+            if (tabElement) {
+                const tabContainer = tabElement.parentElement;
+                tabContainer.querySelectorAll('.code-tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                tabElement.classList.add('active');
+            }
+        }
+        
+        // =======================================================
+        // SHARED UTILITIES
+        // =======================================================
+
+        function createLogger(consoleId) {
+            const consoleOutput = document.getElementById(consoleId);
+
+            function log(message, type = 'info') {
+                const time = new Date().toLocaleTimeString('uk-UA');
+                const color = type === 'event' ? 'text-yellow-300' : type === 'action' ? 'text-blue-300' : type === 'error' ? 'text-red-400' : 'text-green-400';
+                
+                const messageLine = document.createElement('div');
+                messageLine.innerHTML = `<span class="opacity-70 text-gray-400">[${time}]</span> <span class="${color} font-medium">${message}</span>`;
+
+                consoleOutput.appendChild(messageLine);
+                consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            }
+            return log;
+        }
+
+        // =======================================================
+        // 1. SINGLETON SIMULATION
+        // =======================================================
+        let LoggerInstance = null;
+
+        class LoggerSingleton {
+            constructor(logFunction) {
+                if (LoggerInstance) {
+                    return LoggerInstance;
+                }
+                this.log = logFunction;
+                this.instanceId = Math.random().toString(36).substring(2, 8).toUpperCase();
+                this.log(`[SINGLETON] Екземпляр Logger створено. ID: ${this.instanceId}`, 'action');
+                LoggerInstance = this;
+            }
+
+            logMessage(message) {
+                this.log(`[LOG:${this.instanceId}] ${message}`, 'info');
+            }
+        }
+
+        function setupSingletonSimulation() {
+            const log = createLogger('singleton-console');
+            const getBtn1 = document.getElementById('singleton-get-1');
+            const getBtn2 = document.getElementById('singleton-get-2');
+            const logBtn = document.getElementById('singleton-log-btn');
+            const messageInput = document.getElementById('singleton-message-input');
+            
+            let instanceRef = null;
+
+            function getInstance() {
+                if (!instanceRef) {
+                    instanceRef = new LoggerSingleton(log);
+                } else {
+                    log(`[SINGLETON] Повертається існуючий екземпляр. ID: ${instanceRef.instanceId}`, 'action');
+                }
+                return instanceRef;
+            }
+
+            getBtn1.addEventListener('click', getInstance);
+            getBtn2.addEventListener('click', getInstance);
+
+            logBtn.addEventListener('click', () => {
+                const message = messageInput.value.trim() || "Тестове повідомлення";
+                const logger = getInstance();
+                logger.logMessage(message);
+            });
+        }
+
+
+        // =======================================================
+        // 2. FACTORY SIMULATION
+        // =======================================================
+        function setupFactorySimulation() {
+            const log_cpp = createLogger('factory-console');
+            const typeSelect = document.getElementById('transport-type');
+            const createBtn = document.getElementById('factory-create-btn');
+
+            // --- C++ Simulation ---
+            class Transport {
+                drive() {
+                    log_cpp("[ERROR] Базовий метод drive() не повинен викликатися.", 'error');
+                }
+            }
+            class Car extends Transport {
+                drive() {
+                    log_cpp("[FACTORY] Автомобіль їде по дорозі. 🚗", 'event');
+                }
+            }
+            class Bike extends Transport {
+                drive() {
+                    log_cpp("[FACTORY] Велосипед рухається по доріжці. 🚲", 'event');
+                }
+            }
+            
+            class TransportFactory {
+                static create(type) {
+                    switch (type) {
+                        case 'Car':
+                            return new Car();
+                        case 'Bike':
+                            return new Bike();
+                        default:
+                            log_cpp(`[FACTORY ERROR] Невідомий тип транспорту: ${type}`, 'error');
+                            return null;
+                    }
+                }
+            }
+
+            createBtn.addEventListener('click', () => {
+                const type = typeSelect.value;
+                log_cpp(`[ACTION] Запит на створення транспорту типу: ${type}`, 'action');
+                
+                const transport = TransportFactory.create(type);
+                
+                if (transport) {
+                    transport.drive();
+                }
+            });
+            
+            // --- Laravel Simulation ---
+            const log_laravel = createLogger('laravel-factory-console');
+            const seedBtn = document.getElementById('laravel-factory-seed-btn');
+            
+            const roles = ['admin', 'client', 'guest'];
+            const userNames = ["Alice", "Bob", "Charlie", "David", "Eve", "Fiona", "George", "Hannah", "Ian", "Jade"];
+
+            function simulateSeeding() {
+                let counts = { admin: 0, client: 0, guest: 0 };
+                log_laravel('[LARAVEL] php artisan db:seed викликано.', 'action');
+                log_laravel('DB::table("users")->truncate();', 'info');
+
+                userNames.forEach((name, index) => {
+                    let role;
+                    if (index < 2) { role = 'admin'; }         // 2 admins
+                    else if (index < 7) { role = 'client'; }   // 5 clients
+                    else { role = 'guest'; }                   // 3 guests
+                    
+                    counts[role]++;
+                    
+                    // Simulating User::factory()->{role}()->create()
+                    log_laravel(`User::factory()->${role}()->create() - Створено користувача: ${name} (Role: ${role})`, 'event');
+                });
+                
+                log_laravel('------------------------------------------', 'action');
+                log_laravel(`Створення завершено. Всього 10 користувачів:`, 'info');
+                log_laravel(`  - Admin: ${counts.admin}`, 'info');
+                log_laravel(`  - Client: ${counts.client}`, 'info');
+                log_laravel(`  - Guest: ${counts.guest}`, 'info');
+            }
+
+            seedBtn.addEventListener('click', simulateSeeding);
+        }
+        
+        // =======================================================
+        // 3. OBSERVER SIMULATION 
+        // =======================================================
+
+        function setupObserverSimulation() {
+            const newsInput = document.getElementById('news-input');
+            const publishBtn = document.getElementById('publish-btn');
+            const addSubBtn = document.getElementById('add-subscriber-btn');
+            const subList = document.getElementById('subscriber-list');
+            const log_cpp = createLogger('observer-console-cpp');
+
+            let subscriberCount = 0;
+            
+            // --- C++ Simulation (News Agency) ---
+            class Subscriber {
+                constructor(name) {
+                    this.name = name;
+                }
+                update(subject) {
+                    log_cpp(`[${this.name}] отримав новину: "${subject.news}"`, 'event');
+                }
+                render() {
+                    const li = document.createElement('li');
+                    li.className = 'flex justify-between items-center bg-white p-2 rounded-md shadow-sm border border-gray-200';
+                    li.innerHTML = `<span><span class="text-gray-700 font-medium mr-2">👤</span>${this.name}</span><button class="text-red-500 hover:text-red-700 text-sm ml-2 font-semibold" data-name="${this.name}">✖ Відписати</button>`;
+                    return li;
+                }
+            }
+
+            class NewsAgency {
+                constructor() {
+                    this.observers = [];
+                    this.news = '';
+                }
+                subscribe(observer) {
+                    this.observers.push(observer);
+                    log_cpp(`${observer.name} успішно підписався.`, 'action');
+                }
+                unsubscribe(name) {
+                    const initialLength = this.observers.length;
+                    this.observers = this.observers.filter(obs => obs.name !== name);
+                    if (this.observers.length < initialLength) {
+                        log_cpp(`${name} відписався від новин.`, 'action');
+                    }
+                    renderSubscriberList();
+                }
+                publishNews(message) {
+                    this.news = message;
+                    log_cpp(`Агенція публікує новину: "${message}"`, 'info');
+                    this.notifyObservers();
+                }
+                notifyObservers() {
+                    log_cpp(`Сповіщення ${this.observers.length} підписників...`, 'info');
+                    if (this.observers.length === 0) {
+                        log_cpp("Немає активних підписників для сповіщення.", 'error');
+                        return;
+                    }
+                    this.observers.forEach(observer => {
+                        observer.update(this);
+                    });
+                }
+            }
+            
+            const agency = new NewsAgency();
+
+            function renderSubscriberList() {
+                subList.innerHTML = '';
+                if (agency.observers.length === 0) {
+                     subList.innerHTML = '<li class="text-gray-500 italic p-2">Список підписників порожній.</li>';
+                } else {
+                    agency.observers.forEach(obs => {
+                        subList.appendChild(obs.render());
+                    });
+                }
+            }
+
+            addSubBtn.addEventListener('click', () => {
+                subscriberCount++;
+                const newSub = new Subscriber(`Підписник #${subscriberCount}`);
+                agency.subscribe(newSub);
+                renderSubscriberList();
+            });
+            
+            publishBtn.addEventListener('click', () => {
+                const message = newsInput.value.trim();
+                if (message) {
+                    agency.publishNews(message);
+                    newsInput.value = '';
+                } else {
+                    log_cpp("Помилка: Введіть повідомлення для публікації.", 'error');
+                }
+            });
+
+            subList.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON' && e.target.dataset.name) {
+                    agency.unsubscribe(e.target.dataset.name);
+                }
+            });
+            
+            // Initial C++ setup
+            addSubBtn.click();
+            addSubBtn.click();
+            renderSubscriberList(); 
+            
+            // --- Laravel Simulation ---
+            const log_laravel = createLogger('observer-console-laravel');
+            const createLaravelUserBtn = document.getElementById('laravel-observer-create-btn');
+            let userCounter = 1;
+            
+            function simulateLaravelObserver() {
+                const userName = `NewUser${userCounter++}`;
+                const userId = Math.floor(Math.random() * 900) + 100;
+                
+                log_laravel('[CALL] User::create() викликано.', 'action');
+                log_laravel(`  - [MODEL] Створено користувача: ${userName} (ID: ${userId})`, 'info');
+                
+                // 1. Model dispatches event
+                log_laravel('  - [FRAMEWORK] Model dispatches: NewUserCreated::class', 'action');
+                
+                // 2. Event Service Provider catches it
+                log_laravel('  - [SERVICE PROVIDER] EventServiceProvider знаходить LogNewUserListener.', 'action');
+                
+                // 3. Listener handles it (Observer logic)
+                log_laravel(`  - [LISTENER] LogNewUserListener::handle() виконано.`, 'event');
+                log_laravel(`    - Лог записано у storage/logs/laravel.log: "New User Created: ID ${userId}"`, 'event');
+                
+                log_laravel('Готово.', 'info');
+            }
+
+            createLaravelUserBtn.addEventListener('click', simulateLaravelObserver);
+        }
+
+        // =======================================================
+        // 4. STRATEGY SIMULATION
+        // =======================================================
+
+        function setupStrategySimulation() {
+            const log = createLogger('strategy-console');
+            const payBtn = document.getElementById('strategy-pay-btn');
+            const amountInput = document.getElementById('payment-amount');
+
+            // JS Classes mirroring C++
+            class IPaymentStrategy {
+                pay(amount) {
+                    throw new Error("Abstract method pay() not implemented.");
+                }
+            }
+
+            class CreditCardPayment extends IPaymentStrategy {
+                pay(amount) {
+                    log(`[STRATEGY] Оплата ${amount} USD за допомогою Кредитної Картки. (Використовується алгоритм CC) 💳`, 'event');
+                }
+            }
+
+            class PayPalPayment extends IPaymentStrategy {
+                pay(amount) {
+                    log(`[STRATEGY] Оплата ${amount} USD за допомогою PayPal. (Використовується алгоритм PayPal) 💸`, 'event');
+                }
+            }
+
+            class PaymentContext {
+                constructor(strategy) {
+                    this.strategy = strategy;
+                }
+                
+                setStrategy(strategy) {
+                    this.strategy = strategy;
+                    log(`[CONTEXT] Стратегія оплати змінена на ${strategy.constructor.name}.`, 'action');
+                }
+
+                executePayment(amount) {
+                    log(`[CONTEXT] Виконання оплати на суму ${amount} USD...`, 'info');
+                    this.strategy.pay(amount);
+                }
+            }
+            
+            let context = new PaymentContext(new CreditCardPayment()); // default strategy
+
+            // Event Listener for changing strategy
+            document.querySelectorAll('input[name="payment-strategy"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    if (e.target.value === 'CreditCard') {
+                        context.setStrategy(new CreditCardPayment());
+                    } else if (e.target.value === 'PayPal') {
+                        context.setStrategy(new PayPalPayment());
+                    }
+                });
+            });
+
+            payBtn.addEventListener('click', () => {
+                const amount = parseInt(amountInput.value, 10);
+                if (isNaN(amount) || amount <= 0) {
+                    log("Помилка: Введіть коректну суму оплати.", 'error');
+                    return;
+                }
+                context.executePayment(amount);
+            });
+        }
+
+
+        // =======================================================
+        // CHARTS (unchanged)
+        // =======================================================
+        function initCharts() {
+            const patternTypeData = {
+                labels: ['Створюючі', 'Структурні', 'Поведінкові'],
+                datasets: [{
+                    label: 'Типи Патернів',
+                    data: [5, 5, 5],
+                    backgroundColor: [
+                        'rgba(59, 130, 246, 0.7)',
+                        'rgba(16, 185, 129, 0.7)',
+                        'rgba(239, 68, 68, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(59, 130, 246, 1)',
+                        'rgba(16, 185, 129, 1)',
+                        'rgba(239, 68, 68, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            };
+
+            const taskFocusData = {
+                labels: ['Factory', 'Observer', 'Singleton', 'Strategy'],
+                datasets: [{
+                    label: 'Кількість Реалізацій у Завданні',
+                    data: [2, 2, 1, 1], 
+                    backgroundColor: [
+                        'rgba(59, 130, 246, 0.7)',
+                        'rgba(239, 68, 68, 0.7)',
+                        'rgba(245, 158, 11, 0.7)',
+                        'rgba(16, 185, 129, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(59, 130, 246, 1)',
+                        'rgba(239, 68, 68, 1)',
+                        'rgba(245, 158, 11, 1)',
+                        'rgba(16, 185, 129, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            };
+
+            const donutOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ` ${context.label}: ${context.raw} патернів`;
+                            }
+                        }
+                    }
+                }
+            };
+            
+            const barOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y + ' (L/C++)';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            };
+
+            const typeCtx = document.getElementById('patternTypeChart');
+            if (typeCtx) {
+                new Chart(typeCtx, {
+                    type: 'doughnut',
+                    data: patternTypeData,
+                    options: donutOptions
+                });
+            }
+
+            const taskCtx = document.getElementById('taskFocusChart');
+            if (taskCtx) {
+                new Chart(taskCtx, {
+                    type: 'bar',
+                    data: taskFocusData,
+                    options: barOptions
+                });
+            }
+        }
+    </script>
+
+</body>
+</html>
